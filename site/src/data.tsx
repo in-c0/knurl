@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Counter, Fader, Gauge, Gears, Keycap, Knob, Presets, Toggle } from "knurl-ui/react";
+import { Annunciator, Caliper, Combo, Counter, Fader, Gauge, Gears, Joystick, Keycap, Knob, Presets, Rocker, Selector, Tank, Timer, Toggle, Track, Tray } from "knurl-ui/react";
+import { newDocs } from "./data-new";
 import type { Finish } from "knurl-ui";
 import { CONTROLS } from "../../registry/controls.mjs";
 
@@ -92,7 +93,8 @@ function GearsSwitch({ finish }: { finish: Finish }) {
 /** A fresh mount on every replay: the parent bumps `key`. */
 export function useReplay() { const [k, setK] = useState(0); return [k, () => setK((x) => x + 1)] as const; }
 
-const meta = (id: string) => CONTROLS.find((c) => c.id === id)!;
+const meta = (id: string) => CONTROLS.find((c: { id: string }) => c.id === id) as Pick<Doc, "id" | "name" | "role" | "summary" | "group">;
+const base = (exclude: string[] = []) => BASE.filter((p) => !exclude.includes(p.name));
 
 export const DOCS: Doc[] = [
   {
@@ -214,6 +216,7 @@ export const DOCS: Doc[] = [
       ...BASE.filter((p) => p.name !== "name" && p.name !== "disabled"),
     ],
   },
+  ...newDocs(meta, base),
 ];
 
 /** The live control a gallery cell shows. */
@@ -229,6 +232,16 @@ export function Hero({ id, finish }: { id: string; finish: Finish }) {
     case "counter": return <Counter finish={finish} label="Count" defaultValue={42} style={{ width: 210 }} />;
     case "gauge": return <GaugeHero finish={finish} />;
     case "gears": return <Gears finish={finish} style={{ width: 170 }} />;
+    case "rocker": return <Rocker finish={finish} label="Mains" defaultChecked style={{ width: 160 }} />;
+    case "caliper": return <Caliper finish={finish} label="Range" defaultValue={[30, 65]} style={{ width: 270 }} />;
+    case "joystick": return <Joystick finish={finish} label="Stick" style={{ width: 170 }} />;
+    case "combo": return <Combo finish={finish} label="PIN" code="1234" defaultValue="07" style={{ width: 170 }} />;
+    case "tray": return <Tray finish={finish} label="Drop files" count={3} style={{ width: 200 }} />;
+    case "selector": return <Selector finish={finish} label="Mode" defaultValue="MED" style={{ width: 180 }} />;
+    case "timer": return <Timer finish={finish} label="Timer" defaultValue={7 * 60} style={{ width: 170 }} />;
+    case "tank": return <Tank finish={finish} label="Level" value={62} low={15} high={85} style={{ width: 130 }} />;
+    case "track": return <Track finish={finish} label="Checkout" current={1} style={{ width: 270 }} />;
+    case "annunciator": return <Annunciator finish={finish} label="Services" style={{ width: 260 }} />;
   }
   return null;
 }

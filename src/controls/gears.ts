@@ -1,6 +1,6 @@
 import { camera, cyl, depth, facing, fit, flat, lighting, poly, proj, rad, rrect, seg, slab, SHADES, type Camera, type Projector, type Vec2, type Vec3 } from "../core/iso";
 import { reducedMotion } from "../core/motion";
-import { define, type BaseOptions } from "../core/control";
+import { define, keepAttrs, type BaseOptions } from "../core/control";
 import { disposer, line, mk, register, shadow, solid } from "../core/stage";
 
 /**
@@ -173,6 +173,7 @@ export const gears = define<GearsOptions>({
     });
     bag.add(B.unregister);
 
+    const restore = keepAttrs(host, ["role", "aria-label", "aria-busy"]);
     const sync = () => {
       host.setAttribute("role", "status");
       host.setAttribute("aria-label", opts.label ?? "Loading");
@@ -181,7 +182,7 @@ export const gears = define<GearsOptions>({
     sync();
     void seg;
 
-    bag.add(() => { for (const n of ["role", "aria-label", "aria-busy"]) host.removeAttribute(n); svg.replaceChildren(); });
+    bag.add(() => { restore(); svg.replaceChildren(); });
     return {
       update(next) { opts = next; sync(); B.wake(); },
       destroy: bag.dispose,

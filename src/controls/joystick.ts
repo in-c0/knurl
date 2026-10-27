@@ -176,7 +176,6 @@ export const joystick = define<JoystickOptions>({
       const m = Math.hypot(v.x, v.y);
       const k = m > 0.4 ? ((Math.round(Math.atan2(v.y, v.x) / (Math.PI / 4)) % 8) + 8) % 8 : -1;
       lamps.forEach((l, i) => { l.led.classList.toggle("on", i === k); l.glow.classList.toggle("on", i === k); });
-      host.setAttribute("data-state", k < 0 ? "centre" : "pushed");
     }
 
     // state
@@ -191,6 +190,7 @@ export const joystick = define<JoystickOptions>({
       ix.value = String(Math.round(value.x * 100)); iy.value = String(Math.round(value.y * 100));
       ix.setAttribute("aria-valuetext", word(value.x, "right", "left"));
       iy.setAttribute("aria-valuetext", word(value.y, "up", "down"));
+      host.setAttribute("data-state", Math.hypot(value.x, value.y) > 0.4 ? "pushed" : "centre");
       for (const [i, a] of [[ix, "X"], [iy, "Y"]] as const) {
         i.disabled = !!opts.disabled;
         i.setAttribute("aria-label", `${label()} ${a}`);

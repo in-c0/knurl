@@ -1,7 +1,7 @@
 {
   "name": "knurl-ui",
-  "version": "0.1.0",
-  "description": "UI controls machined as isometric instruments. A switch is a toggle on a panel, a slider is a fader on a rail, a progress bar is a dial gauge. Line or solid finish, React or plain DOM, no dependencies.",
+  "version": "0.2.0",
+  "description": "UI controls machined as isometric instruments: a switch is a toggle on a panel, a slider is a fader, a progress bar is a dial gauge. 18 controls, line or solid finish, React or plain DOM, no dependencies.",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,

@@ -124,7 +124,7 @@ button { font: inherit; color: inherit; }
 .section-head p { color: var(--muted-fg); font-size: 14px; margin-top: 4px; }
 .grid { display: grid; grid-template-columns: repeat(1, minmax(0, 1fr)); border-top: 1px solid var(--border); border-left: 1px solid var(--border); margin-bottom: 64px; }
 @media (min-width: 640px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (min-width: 1100px) { .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (min-width: 1100px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .cell { position: relative; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); display: flex; flex-direction: column; min-width: 0; }
 .cell-stage { flex: 1; min-height: 230px; display: grid; place-items: center; padding: 28px 16px 12px; }
 .cell-foot { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 12px 16px 14px; }
@@ -306,7 +306,7 @@ td.desc-cell { color: var(--muted-fg); min-width: 240px; }
 .rack figure > [data-knurl] { max-width: 100%; }
 .rack figcaption { font: 500 11.5px/1.3 var(--font-mono); color: var(--muted-fg); letter-spacing: 0.02em; text-transform: uppercase; text-align: center; max-width: 24ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rack figcaption output { color: var(--fg); font-variant-numeric: tabular-nums; margin-left: 4px; }
-.rack .keys { display: flex; gap: 0; flex-wrap: wrap; justify-content: center; max-width: 340px; }
+.rack .keys { display: flex; gap: 0; flex-wrap: wrap; justify-content: center; max-width: 540px; }
 .rack-note { margin: 2px auto 0; font-size: 13px; color: var(--muted-fg); text-align: center; max-width: 64ch; }
 .rack-log { list-style: none; margin: 0 auto; padding: 10px 14px; width: min(560px, 100%); border: 1px solid var(--border); border-radius: 10px; background: var(--bg); font: 12.5px/1.7 var(--font-mono); color: var(--muted-fg); }
 .rack-log li:first-child { color: var(--fg); }
@@ -326,3 +326,6 @@ td.desc-cell { color: var(--muted-fg); min-width: 240px; }
 .wide-article { max-width: 1040px; }
 .case-bar { margin-top: 20px; display: flex; justify-content: flex-end; align-items: center; gap: 4px; }
 .case-bar + .case-stage { margin-top: 10px; }
+.demo-list { margin: 0; padding: 0; list-style: none; font-size: 13px; color: var(--muted-fg); display: grid; gap: 4px; }
+.demo-list label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+.sidebar div > h4:first-child { margin-top: 18px; }

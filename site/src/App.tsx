@@ -145,11 +145,11 @@ function Home({ go, finish, setFinish }: { go: (r: string) => void; finish: Fini
             <span className="corner" style={{ left: -4, bottom: -4 }} /><span className="corner" style={{ right: -4, bottom: -4 }} />
             <div className="hero-grid">
               <div>
-                <a className="eyebrow" href="#introduction"><i />v0.1 · 8 controls</a>
+                <a className="eyebrow" href="#introduction"><i />v0.2 · {DOCS.length} controls · {CASES.length} examples</a>
                 <h1>Form controls, <em>machined.</em></h1>
                 <p className="lede">
                   A switch is a <b>toggle on a panel</b>, a slider is a <b>fader on its strip</b>, a progress bar is a <b>dial gauge</b>.
-                  Eight accessible controls for React and plain DOM, drawn as working isometric objects on native inputs. No dependencies.
+                  {DOCS.length} accessible controls for React and plain DOM, drawn as working isometric objects on native inputs. No dependencies.
                 </p>
                 <div className="cta">
                   <a className="btn primary" href={href(DOCS[0].id)}>Browse controls</a>
@@ -171,7 +171,7 @@ function Home({ go, finish, setFinish }: { go: (r: string) => void; finish: Fini
           <Seg label="Finish" value={finish} onChange={setFinish} options={[{ v: "line", label: "Line" }, { v: "solid", label: "Solid" }]} />
         </div>
         <div className="grid">
-          {DOCS.map((d) => (
+          {ORDERED.map((d) => (
             <div className="cell" key={d.id}>
               <div className="cell-actions">
                 <CopyButton className="icon-btn" text={`npx shadcn@latest add ${SITE}/r/${d.id}.json`} label={`Copy add command for ${d.name}`} />
@@ -183,6 +183,23 @@ function Home({ go, finish, setFinish }: { go: (r: string) => void; finish: Fini
                 <span>{d.role}</span>
               </div>
             </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="container gutter" aria-labelledby="examples">
+        <div className="section-head">
+          <div>
+            <h2 id="examples">Examples</h2>
+            <p>Whole interfaces built from several controls, with their code.</p>
+          </div>
+        </div>
+        <div className="cases">
+          {CASES.map((c) => (
+            <a className="case-card" key={c.id} href={href(c.id)}>
+              <div className="shot" aria-hidden="true"><Hero id={c.uses[0]} finish={finish} /></div>
+              <div className="body"><b>{c.name}</b><p>{c.summary}</p><small>{c.uses.length} controls · {c.uses.map((u) => DOCS.find((d) => d.id === u)?.name).join(", ")}</small></div>
+            </a>
           ))}
         </div>
       </section>

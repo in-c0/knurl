@@ -112,19 +112,21 @@ export function Synth({ finish = "line" }: { finish?: Finish }) {
   return (
     <div className="rack">
       <div className="rack-row">
-        <figure><Toggle finish={finish} label="Power" checked={power} onCheckedChange={setPower} style={{ width: 120 }} /><figcaption>Power</figcaption></figure>
-        <figure><Selector finish={finish} label="Waveform" options={Object.keys(WAVES)} value={wave} onValueChange={(v) => setWave(v as Wave)} style={{ width: 170 }} /><figcaption>Wave</figcaption></figure>
-        <figure><Knob finish={finish} label="Cutoff" value={cutoff} onValueChange={setCutoff} format={(v) => `${Math.round(hz(v))} Hz`} style={{ width: 130 }} /><figcaption>Cutoff <output>{hz(cutoff) >= 1000 ? (hz(cutoff) / 1000).toFixed(1) + "k" : Math.round(hz(cutoff))}</output></figcaption></figure>
-        <figure><Knob finish={finish} label="Resonance" value={resonance} onValueChange={setResonance} style={{ width: 130 }} /><figcaption>Reso <output>{resonance}</output></figcaption></figure>
-        <figure><Knob finish={finish} label="Decay" value={decay} onValueChange={setDecay} format={(v) => `${seconds(v).toFixed(2)} s`} style={{ width: 130 }} /><figcaption>Decay <output>{seconds(decay).toFixed(2)}s</output></figcaption></figure>
+        <figure><Toggle finish={finish} label="Power" checked={power} onCheckedChange={setPower} style={{ width: 104 }} /><figcaption>Power</figcaption></figure>
+        <figure><Selector finish={finish} label="Waveform" options={Object.keys(WAVES)} value={wave} onValueChange={(v) => setWave(v as Wave)} style={{ width: 150 }} /><figcaption>Wave</figcaption></figure>
+        <figure><Knob finish={finish} label="Cutoff" value={cutoff} onValueChange={setCutoff} format={(v) => `${Math.round(hz(v))} Hz`} style={{ width: 118 }} /><figcaption>Cutoff <output>{hz(cutoff) >= 1000 ? (hz(cutoff) / 1000).toFixed(1) + "k" : Math.round(hz(cutoff))}</output></figcaption></figure>
+        <figure><Knob finish={finish} label="Resonance" value={resonance} onValueChange={setResonance} style={{ width: 118 }} /><figcaption>Reso <output>{resonance}</output></figcaption></figure>
+        <figure><Knob finish={finish} label="Decay" value={decay} onValueChange={setDecay} format={(v) => `${seconds(v).toFixed(2)} s`} style={{ width: 118 }} /><figcaption>Decay <output>{seconds(decay).toFixed(2)}s</output></figcaption></figure>
       </div>
       <div className="rack-row">
         <figure><Joystick finish={finish} label="Bend and vibrato" value={bend} onValueChange={setBend} style={{ width: 150 }} /><figcaption>Bend · Vibrato</figcaption></figure>
-        <div className="keys" role="group" aria-label="Keyboard, C4 to C5">
-          {KEYS.map((k) => <Keycap key={k.note} finish={finish} legend={k.legend} label={k.note} onPress={() => play(k.hz)} style={{ width: 74 }} />)}
-        </div>
+        <figure><div className="keys" role="group" aria-label="Keyboard, C4 to C5">
+          {KEYS.map((k) => <Keycap key={k.note} finish={finish} legend={k.legend} label={k.note} onPress={() => play(k.hz)} style={{ width: 66 }} />)}
+        </div><figcaption>C4 – C5</figcaption></figure>
+      </div>
+      <div className="rack-row">
         <figure><Gauge finish={finish} role="meter" label="Output level" value={level} peak style={{ width: 140 }} /><figcaption>Level</figcaption></figure>
-        <figure><Fader finish={finish} label="Volume" value={volume} onValueChange={setVolume} style={{ width: 220 }} /><figcaption>Volume <output>{volume}</output></figcaption></figure>
+        <figure><Fader finish={finish} label="Volume" value={volume} onValueChange={setVolume} style={{ width: 280 }} /><figcaption>Volume <output>{volume}</output></figcaption></figure>
       </div>
       <p className="rack-note">Press the keys, or type A S D F G H J K. Push the stick right or left to bend a whole tone; push it away for vibrato.</p>
     </div>

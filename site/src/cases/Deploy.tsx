@@ -62,17 +62,19 @@ export function Deploy({ finish = "line" }: { finish?: Finish }) {
   return (
     <div className="rack">
       <div className="rack-row">
-        <figure className="wide"><Track finish={finish} label="Release" steps={stages} current={stage} style={{ width: 460 }} /><figcaption>{stages[stage]} · step {stage + 1} of {stages.length}</figcaption></figure>
-        <figure><Gauge finish={finish} label={`${stages[stage]} progress`} value={progress} peak={false} style={{ width: 150 }} /><figcaption>Stage <output>{Math.round(progress)}%</output></figcaption></figure>
+        <figure className="wide"><Track finish={finish} label="Release" steps={stages} current={stage} style={{ width: 400 }} /><figcaption>{stages[stage]} · step {stage + 1} of {stages.length}</figcaption></figure>
+        <figure><Gauge finish={finish} label={`${stages[stage]} progress`} value={progress} peak={false} style={{ width: 140 }} /><figcaption>Stage <output>{Math.round(progress)}%</output></figcaption></figure>
         <figure><Gears finish={finish} label={running ? "Deploying" : "Idle"} spinning={running} style={{ width: 130 }} /><figcaption>{running ? "Running" : "Idle"}</figcaption></figure>
       </div>
       <div className="rack-row">
-        <figure><Annunciator finish={finish} label="Services" columns={3} items={SERVICES.map((s) => ({ id: s, label: s, state: services[s] }))} onTest={() => say("Lamp test.")} style={{ width: 260 }} /><figcaption>Services</figcaption></figure>
+        <figure><Annunciator finish={finish} label="Services" columns={3} items={SERVICES.map((s) => ({ id: s, label: s, state: services[s] }))} onTest={() => say("Lamp test.")} style={{ width: 300 }} /><figcaption>Services</figcaption></figure>
+        <figure><Timer finish={finish} label="Change window" value={window_} onValueChange={setWindow} onDone={() => say("Change window closed.")} style={{ width: 140 }} /><figcaption>Window <output>{Math.floor(window_ / 60)}:{String(window_ % 60).padStart(2, "0")}</output></figcaption></figure>
+      </div>
+      <div className="rack-row">
         <figure><Rocker finish={finish} label="Canary first" checked={canary} onCheckedChange={setCanary} disabled={running} style={{ width: 110 }} /><figcaption>Canary</figcaption></figure>
         <figure><Rocker finish={finish} label="Run migrations" checked={migrate} onCheckedChange={setMigrate} disabled={running} style={{ width: 110 }} /><figcaption>Migrate</figcaption></figure>
         <figure><Combo finish={finish} label="Arming code" length={4} value={code} onValueChange={setCode} code={ARM_CODE} disabled={running} style={{ width: 170 }} /><figcaption>{armed ? "Armed" : `Code ${ARM_CODE}`}</figcaption></figure>
         <figure><Keycap finish={finish} legend="Deploy" units={2.25} disabled={!armed || running} onPress={deploy} style={{ width: 170 }} /><figcaption>{armed ? "Ready" : "Locked"}</figcaption></figure>
-        <figure><Timer finish={finish} label="Change window" value={window_} onValueChange={setWindow} onDone={() => say("Change window closed.")} style={{ width: 130 }} /><figcaption>Window <output>{Math.floor(window_ / 60)}:{String(window_ % 60).padStart(2, "0")}</output></figcaption></figure>
       </div>
       <ol className="rack-log" aria-live="polite">{log.map((l, i) => <li key={log.length - i}>{l}</li>)}</ol>
     </div>

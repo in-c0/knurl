@@ -165,3 +165,9 @@ export function snap(v: number, min: number, max: number, step: number) {
   const dec = Math.max(...[s, min].map((n) => (String(n).split(".")[1] ?? "").length));
   return Number(x.toFixed(Math.min(dec, 10)));
 }
+
+/** Remembers the host's own values of `names`; the returned function puts them back (or removes what it did not have). */
+export function keepAttrs(host: HTMLElement, names: readonly string[]): () => void {
+  const was = names.map((n) => [n, host.getAttribute(n)] as const);
+  return () => { for (const [n, v] of was) if (v === null) host.removeAttribute(n); else host.setAttribute(n, v); };
+}

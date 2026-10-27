@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import * as K from "../src/index";
 import { counter, fader, gauge, gears, keycap, knob, presets, toggle } from "../src/index";
 
 beforeAll(() => {
@@ -12,7 +13,8 @@ beforeAll(() => {
 const host = () => { const el = document.createElement("div"); document.body.appendChild(el); return el; };
 
 describe("every control", () => {
-  const all = { toggle, fader, knob, keycap, presets, counter, gauge, gears } as Record<string, (el: HTMLElement, o?: any) => { update(o: any): void; destroy(): void }>;
+  const all = Object.fromEntries(Object.entries(K).filter(([, v]) => typeof v === "function" && "keys" in v)) as Record<string, (el: HTMLElement, o?: any) => { update(o: any): void; destroy(): void }>;
+  it("exports all eighteen", () => expect(Object.keys(all).length).toBe(18));
   for (const [id, mount] of Object.entries(all)) {
     it(`${id} mounts, draws and removes only what it added`, () => {
       const el = host();

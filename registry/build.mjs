@@ -61,7 +61,7 @@ items.push({
   name: "knurl",
   type: "registry:component",
   title: "Knurl (every control)",
-  description: "All eight Knurl controls and their core.",
+  description: `All ${CONTROLS.length} Knurl controls and their core.`,
   registryDependencies: CONTROLS.map((c) => `${SITE}/r/${c.id}.json`),
   files: [],
 });

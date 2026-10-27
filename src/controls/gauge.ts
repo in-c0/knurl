@@ -1,6 +1,6 @@
 import { camera, circle, cyl, fit, flat, loft, poly, proj, rad, radialTicks, rrect, seg, slab, type Vec2, type Vec3 } from "../core/iso";
 import { spring, stepS } from "../core/motion";
-import { define, num, type BaseOptions } from "../core/control";
+import { define, keepAttrs, num, type BaseOptions } from "../core/control";
 import { disposer, line, mk, register, shadow, solid } from "../core/stage";
 
 /**
@@ -114,6 +114,7 @@ export const gauge = define<GaugeOptions>({
     });
     bag.add(B.unregister);
 
+    const restore = keepAttrs(host, ["role", "aria-valuemin", "aria-valuemax", "aria-valuenow", "aria-label", "aria-valuetext"]);
     const sync = () => {
       const [a, b] = lim(), v = num(opts.value, a);
       host.setAttribute("role", opts.role === "meter" ? "meter" : "progressbar");
@@ -126,7 +127,7 @@ export const gauge = define<GaugeOptions>({
     sync();
 
     bag.add(() => {
-      for (const n of ["role", "aria-valuemin", "aria-valuemax", "aria-valuenow", "aria-label", "aria-valuetext"]) host.removeAttribute(n);
+      restore();
       svg.replaceChildren();
     });
     return {

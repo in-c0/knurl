@@ -58,14 +58,16 @@ export function Intake({ finish = "line" }: { finish?: Finish }) {
   return (
     <div className="rack">
       <div className="rack-row">
-        <figure><Tray finish={finish} label="Drop PDFs" accept=".pdf,application/pdf" count={files.length} onFiles={add} style={{ width: 220 }} /><figcaption>{files.length ? `${files.length} in · ${waiting} waiting` : "Drop PDFs or click"}</figcaption></figure>
+        <figure><Tray finish={finish} label="Drop PDFs" accept=".pdf,application/pdf" count={files.length} onFiles={add} style={{ width: 190 }} /><figcaption>{files.length ? `${files.length} in · ${waiting} waiting` : "Drop PDFs or click"}</figcaption></figure>
         <figure><Gears finish={finish} label={busy ? "Processing" : "Idle"} spinning={busy} style={{ width: 130 }} /><figcaption>{busy ? files[done]?.name ?? "Processing" : "Idle"}</figcaption></figure>
         <figure><Gauge finish={finish} label="File progress" value={progress} peak={false} style={{ width: 150 }} /><figcaption>File <output>{Math.round(progress)}%</output></figcaption></figure>
-        <figure><Annunciator finish={finish} label="Checks" columns={2} items={CHECKS.map((c) => ({ id: c, label: c, state: checks[c] }))} style={{ width: 190 }} /><figcaption>Checks</figcaption></figure>
+        <figure><Annunciator finish={finish} label="Checks" columns={2} items={CHECKS.map((c) => ({ id: c, label: c, state: checks[c] }))} style={{ width: 180 }} /><figcaption>Checks</figcaption></figure>
       </div>
       <div className="rack-row">
         <figure className="wide"><Caliper finish={finish} label="Pages" min={1} max={40} value={pages} onValueChange={setPages} minGap={0} style={{ width: 360 }} /><figcaption>Pages <output>{p0}–{p1}</output> of 40</figcaption></figure>
         <figure><Presets finish={finish} label="Paper" options={["A4", "LTR", "A3"]} value={paper} onValueChange={setPaper} style={{ width: 200 }} /><figcaption>Paper {paper}</figcaption></figure>
+      </div>
+      <div className="rack-row">
         <figure><Selector finish={finish} label="Quality" options={["DRAFT", "STD", "HIGH"]} value={quality} onValueChange={setQuality} style={{ width: 150 }} /><figcaption>Quality</figcaption></figure>
         <figure><Counter finish={finish} label="Copies" min={1} max={99} value={copies} onValueChange={setCopies} style={{ width: 180 }} /><figcaption>Copies</figcaption></figure>
         <figure><Tank finish={finish} label="Storage used" value={usedMb} max={QUOTA_MB} high={QUOTA_MB * 0.9} format={(v) => `${Math.round(v)} of ${QUOTA_MB} MB`} style={{ width: 120 }} /><figcaption>Storage <output>{Math.round(usedMb)} MB</output></figcaption></figure>
