@@ -1,4 +1,4 @@
-import { camera, cyl, fit, flat, loft, planeMatrix, poly, poly3, prism3, proj, rad, rot, rrect, seg, slab, toViewer, dot3, type Projector, type SolidPaths, type Vec2, type Vec3 } from "../core/iso";
+import { camera, cyl, depth, dot3, fit, flat, loft, open, planeMatrix, poly, poly3, prism3, proj, rad, rot, rrect, seg, slab, toViewer, type Projector, type SolidPaths, type Vec2, type Vec3 } from "../core/iso";
 import { spring, stepS, type Spring } from "../core/motion";
 import { define, emit, nativeInput, type BaseOptions } from "../core/control";
 import { disposer, line, mk, register, shadow, solid, type Solid } from "../core/stage";
@@ -41,12 +41,14 @@ const LIFT = 6.5, INS = 3.4, SWING = rad(124); // how far the shackle springs up
 let uid = 0;
 
 /**
- * A bent round rod, drawn as one solid: its outline is the projected centre
- * line offset by the radius (the silhouette of the swept sphere), its ends the
- * front halves of the cut circles where vertical legs leave a plane, and its
- * solid-finish shading four bands across the rod's width.
+ * One half of a bent round rod, from where it leaves a hole to the top of its
+ * bow: the projected centre line offset by the radius each side (the outline
+ * of a swept sphere), closed at the hole by the front half of the cut circle.
+ * Each half rises all the way, so its outline never folds back on itself, even
+ * seen edge-on; the open end, where the halves meet, is filled but not
+ * stroked. The solid finish shades four bands across the rod's width.
  */
-function rod(P: Projector, S: number, pts: readonly Vec3[], r: number): SolidPaths {
+function tube(P: Projector, S: number, pts: readonly Vec3[], r: number) {
   const Q = pts.map((p) => P(p[0], p[1], p[2]));
   const n = Q.length, rs = r * S;
   const N: Vec2[] = Q.map((_, i) => {
@@ -55,17 +57,15 @@ function rod(P: Projector, S: number, pts: readonly Vec3[], r: number): SolidPat
     return [-dy / L, dx / L];
   });
   const off = (i: number, s: number): Vec2 => [Q[i][0] + N[i][0] * rs * s, Q[i][1] + N[i][1] * rs * s];
-  // the front half of the cut circle at an end, from one side of the rod to the other
-  const end = (p: Vec3, from: Vec2, to: Vec2): Vec2[] => {
-    const ring = Array.from({ length: 24 }, (_, k): Vec2 => P(p[0] + Math.cos((k / 24) * Math.PI * 2) * r, p[1] + Math.sin((k / 24) * Math.PI * 2) * r, p[2]));
-    const near = (q: Vec2) => ring.reduce((b, x, k) => (Math.hypot(x[0] - q[0], x[1] - q[1]) < Math.hypot(ring[b][0] - q[0], ring[b][1] - q[1]) ? k : b), 0);
-    const i0 = near(from), i1 = near(to), lowest = ring.reduce((b, x, k) => (x[1] > ring[b][1] ? k : b), 0);
-    const walk = (dir: number) => { const out: Vec2[] = []; for (let k = i0; ; k = (k + dir + 24) % 24) { out.push(ring[k]); if (k === i1) break; } return out; };
-    const a = walk(1), b = walk(-1);
-    return a.some((q) => q === ring[lowest]) ? a : b;
-  };
+  // the front (lower) half of the cut circle at the hole, from one side of the rod to the other
+  const p = pts[0];
+  const ring = Array.from({ length: 24 }, (_, k): Vec2 => P(p[0] + Math.cos((k / 24) * Math.PI * 2) * r, p[1] + Math.sin((k / 24) * Math.PI * 2) * r, p[2]));
+  const near = (q: Vec2) => ring.reduce((b, x, k) => (Math.hypot(x[0] - q[0], x[1] - q[1]) < Math.hypot(ring[b][0] - q[0], ring[b][1] - q[1]) ? k : b), 0);
+  const i0 = near(off(0, -1)), i1 = near(off(0, 1)), low = ring.reduce((b, x, k) => (x[1] > ring[b][1] ? k : b), 0);
+  const walk = (dir: number) => { const out: Vec2[] = []; for (let k = i0; ; k = (k + dir + 24) % 24) { out.push(ring[k]); if (k === i1) break; } return out; };
+  const w1 = walk(1), cap = w1.includes(ring[low]) ? w1 : walk(-1);
   const left = Q.map((_, i) => off(i, 1)), right = Q.map((_, i) => off(n - 1 - i, -1));
-  const outline = [...left, ...end(pts[n - 1], left[n - 1], right[0]), ...right, ...end(pts[0], right[n - 1], left[0])];
+  const edge = [...right, ...cap, ...left];
   // light from the upper left of the screen
   const Lx = -0.6, Ly = -0.8, bands = [[-1, -0.5], [-0.5, 0], [0, 0.5], [0.5, 1]];
   const buckets: string[][] = [[], [], [], []];
@@ -74,7 +74,16 @@ function rod(P: Projector, S: number, pts: readonly Vec3[], r: number): SolidPat
     const b = 0.5 + 0.5 * m * (nx * Lx + ny * Ly) * 1.6;
     buckets[Math.max(0, Math.min(3, Math.floor(b * 4)))].push(poly([off(i, s0), off(i + 1, s0), off(i + 1, s1), off(i, s1)]));
   }
-  return { sil: poly(outline), shades: buckets.map((b) => b.join("")), top: "", crease: "" };
+  return { fill: poly(edge), shades: buckets.map((b) => b.join("")), edge: open(edge) };
+}
+
+/** A tube half in the DOM, with the same parts and classes as a core solid. */
+function tubeSolid(parent: Element) {
+  const g = mk("g", { class: "k-solid" }, parent);
+  const fill = mk("path", { class: "k-fill" }, g);
+  const sh = [0, 1, 2, 3].map((i) => mk("path", { class: "k-shade", "data-s": i }, g));
+  const edge = mk("path", { class: "k-edge" }, g);
+  return { g, put(t: ReturnType<typeof tube>) { fill.setAttribute("d", t.fill); sh.forEach((p, i) => p.setAttribute("d", t.shades[i])); edge.setAttribute("d", t.edge); } };
 }
 
 export const combo = define<ComboOptions>({
@@ -108,7 +117,7 @@ export const combo = define<ComboOptions>({
     let BX = 0, SX = 0, SA = 0, X0 = 0;
     type Wheel = { x0: number; x1: number; fl0: Solid; band: Solid; fl1: Solid; ribs: SVGPathElement; seps: SVGPathElement; digits: SVGTextElement[]; sp: Spring; last: number; set: boolean };
     let wheels: Wheel[] = [];
-    let shackle: Solid;
+    let shortLeg: ReturnType<typeof tubeSolid>, longLeg: ReturnType<typeof tubeSolid>;
 
     // a point on the front face's plane under the pointer
     const onFront = (sx: number, sy: number): Vec2 => {
@@ -187,7 +196,8 @@ export const combo = define<ComboOptions>({
       mk("path", { class: "k-slot", d: face(rrect(-3.2, rz - 0.9, 3.2, rz + 0.9, 0.9, 4).map((q): Vec2 => [q.u, q.v])) }, g);
       mk("path", { class: "k-dot mid", d: ring2(-1.6, rz, 0.55, 10) }, g);
 
-      shackle = solid(g);
+      const sg = mk("g", {}, g);
+      shortLeg = tubeSolid(sg); longLeg = tubeSolid(sg);
       last = { lift: NaN, sw: NaN };
       sync();
       for (const w of wheels) drawWheel(w);
@@ -249,27 +259,32 @@ export const combo = define<ComboOptions>({
       last = { lift, sw };
       const c = Math.cos(sw), s = Math.sin(sw);
       const place = (x: number, z: number): Vec3 => { const dx = x + SX; return [-SX + dx * c, dx * s, z + lift]; };
-      const pts: Vec3[] = [];
-      const freeEnd = Math.max(BH + 0.7, BH - INS + lift);
-      // short leg up from its hole (or its free end), round the bow, down the long leg into its hole
-      const zs = freeEnd - lift;
-      for (let k = 0; k <= 6; k++) pts.push(place(SX, zs + ((SA - zs) * k) / 6));
-      for (let k = 1; k < 24; k++) { const t = (k / 24) * Math.PI; pts.push(place(SX * Math.cos(t), SA + Math.sin(t) * SX)); }
-      const zl = BH + 0.7 - lift;
-      for (let k = 0; k <= 6; k++) pts.push(place(-SX, SA + ((zl - SA) * k) / 6));
-      shackle.put(rod(P, C.S, pts, ROD));
+      // each half runs from where its leg leaves the body (or the short leg's free end) up to the top of the bow
+      const half = (side: 1 | -1, z0: number) => {
+        const pts: Vec3[] = [];
+        for (let k = 0; k <= 6; k++) pts.push(place(side * SX, z0 + ((SA - z0) * k) / 6));
+        for (let k = 1; k <= 12; k++) { const t = (k / 24) * Math.PI; pts.push(place(side * SX * Math.cos(t), SA + Math.sin(t) * SX)); }
+        return pts;
+      };
+      const ps = half(1, Math.max(BH + 0.7, BH - INS + lift) - lift), pl = half(-1, BH + 0.7 - lift);
+      shortLeg.put(tube(P, C.S, ps, ROD));
+      longLeg.put(tube(P, C.S, pl, ROD));
+      // paint the nearer half last
+      const d = (q: Vec3[]) => depth(C, q[6][0], q[6][1], q[6][2]);
+      const want = d(ps) > d(pl) ? shortLeg.g : longLeg.g;
+      if (want.parentNode!.lastChild !== want) want.parentNode!.appendChild(want);
     }
 
     // motion: the shackle springs up first, then swings; closing, it swings home, then drops
     const lift = spring(0, { k: 320, c: 15, eps: 0.01 }), sw = spring(0, { k: 120, c: 17, eps: 0.002 });
-    let open = false;
+    let opened = false;
     const B = register(host, (dt) => {
       let m = false;
       for (const w of wheels) { if (stepS(w.sp, dt)) m = true; drawWheel(w); }
-      lift.t = open || Math.abs(sw.x) > rad(4) ? LIFT : 0;
-      sw.t = open && lift.x > INS + 1 ? SWING : 0;
+      lift.t = opened || Math.abs(sw.x) > rad(4) ? LIFT : 0;
+      sw.t = opened && lift.x > INS + 1 ? SWING : 0;
       const a = stepS(lift, dt), b = stepS(sw, dt);
-      if (shackle) drawShackle(lift.x, sw.x);
+      if (shortLeg) drawShackle(lift.x, sw.x);
       return m || a || b || lift.t !== lift.x || sw.t !== sw.x;
     });
     bag.add(B.unregister);
@@ -285,9 +300,9 @@ export const combo = define<ComboOptions>({
       input.disabled = !!opts.disabled;
       input.setAttribute("aria-label", opts.label ?? "Combination");
       if (opts.name) input.name = opts.name; else input.removeAttribute("name");
-      const was = open;
-      open = isOpen();
-      host.setAttribute("data-state", open ? "open" : "locked");
+      const was = opened;
+      opened = isOpen();
+      host.setAttribute("data-state", opened ? "open" : "locked");
       wheels.forEach((w, i) => {
         const d = Number(value[i] ?? 0);
         // roll the short way round to the new digit
@@ -299,7 +314,7 @@ export const combo = define<ComboOptions>({
       });
       if (value.length < n) done = "";
       B?.wake();
-      return open && !was;
+      return opened && !was;
     }
 
     const ask = (next: string, typed: boolean) => {
@@ -307,9 +322,9 @@ export const combo = define<ComboOptions>({
       if (next === value) { input.value = value; return; }
       if (opts.controlled) { input.value = value; emit(opts.onValueChange, next); if (typed) complete(next); return; }
       value = next;
-      const opened = sync();
+      const justOpened = sync();
       emit(opts.onValueChange, next);
-      if (typed || opened) complete(next);
+      if (typed || justOpened) complete(next);
     };
     // sets wheel i to digit d, filling any unset wheels before it with 0
     const roll = (i: number, by: number) => {
@@ -367,7 +382,7 @@ export const combo = define<ComboOptions>({
 
     build();
     // a lock that mounts open starts open, without the swing
-    if (open) { lift.x = lift.t = LIFT; sw.x = sw.t = SWING; drawShackle(lift.x, sw.x); }
+    if (opened) { lift.x = lift.t = LIFT; sw.x = sw.t = SWING; drawShackle(lift.x, sw.x); }
     bag.add(() => { input.remove(); host.removeAttribute("data-knurl-hit"); host.removeAttribute("data-state"); svg.replaceChildren(); });
     return {
       update(next, prev) {
