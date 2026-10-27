@@ -3,6 +3,7 @@ import type { Finish } from "knurl-ui";
 import { Fader, Gauge, Knob, Toggle } from "knurl-ui/react";
 import { DOCS, Hero, NPM, REPO, SITE, useReplay, type Doc } from "./data";
 import { Code, Command, CopyButton, Icon, Mark, Seg, Tabs, copyText, useStored } from "./ui";
+import { CASES, type Case } from "./cases";
 
 const SOURCES = import.meta.glob("../../src/controls/*.ts", { query: "?raw", import: "default", eager: true }) as Record<string, string>;
 const source = (id: string) => SOURCES[`../../src/controls/${id}.ts`] ?? "";
@@ -12,7 +13,10 @@ const GUIDES = [
   { id: "installation", name: "Installation" },
   { id: "theming", name: "Theming" },
 ];
-const PAGES = [...GUIDES, ...DOCS.map((d) => ({ id: d.id, name: d.name }))];
+/** Controls in sidebar order: grouped, and within a group in the order DOCS lists them. */
+const GROUPS = ["Inputs", "Choices", "Readouts"] as const;
+const ORDERED = GROUPS.flatMap((g) => DOCS.filter((d) => d.group === g));
+const PAGES = [...GUIDES, ...ORDERED.map((d) => ({ id: d.id, name: d.name })), ...CASES.map((c) => ({ id: c.id, name: c.name }))];
 
 /* ───── routing on the hash: one plain name per page ───── */
 function useRoute(): [string, (r: string) => void] {
@@ -85,8 +89,9 @@ export function App() {
           <button className="icon-btn menu-btn" aria-label={menu ? "Close menu" : "Open menu"} aria-expanded={menu} onClick={() => setMenu((m) => !m)}>{menu ? <Icon.close /> : <Icon.menu />}</button>
           <a className="brand" href="#" onClick={(e) => { e.preventDefault(); go(""); }}><Mark />Knurl</a>
           <nav className="nav" aria-label="Main">
-            <a href="#introduction" aria-current={route && !DOCS.some((d) => d.id === route) ? "page" : undefined}>Docs</a>
+            <a href="#introduction" aria-current={GUIDES.some((g) => g.id === route) ? "page" : undefined}>Docs</a>
             <a href={href(DOCS[0].id)} aria-current={docIndex >= 0 ? "page" : undefined}>Controls</a>
+            <a href={href(CASES[0].id)} aria-current={CASES.some((c) => c.id === route) ? "page" : undefined}>Examples</a>
             <a href="#theming">Theming</a>
           </nav>
           <div className="header-right">
@@ -105,7 +110,8 @@ export function App() {
           <div className="docs">
             <aside className="sidebar" aria-label="Documentation"><SideNav route={route} /></aside>
             <main className="main" id="main">
-              {docIndex >= 0 ? <ControlPage key={route} doc={DOCS[docIndex]} index={docIndex} finish={finish} setFinish={setFinish} />
+              {CASES.some((c) => c.id === route) ? <CasePage key={route} c={CASES.find((c) => c.id === route)!} finish={finish} setFinish={setFinish} />
+                : docIndex >= 0 ? <ControlPage key={route} doc={DOCS[docIndex]} index={docIndex} finish={finish} setFinish={setFinish} />
                 : route === "installation" ? <Installation />
                 : route === "theming" ? <Theming finish={finish} />
                 : route === "introduction" ? <Introduction />
@@ -237,8 +243,14 @@ function SideNav({ route }: { route: string }) {
     <>
       <h4>Getting started</h4>
       {GUIDES.map((g) => <a key={g.id} href={href(g.id)} aria-current={route === g.id ? "page" : undefined}>{g.name}</a>)}
-      <h4>Controls</h4>
-      {DOCS.map((d) => <a key={d.id} href={href(d.id)} aria-current={route === d.id ? "page" : undefined}>{d.name}<small>{d.role.split(" ")[0].toLowerCase()}</small></a>)}
+      {GROUPS.map((g) => (
+        <div key={g}>
+          <h4>{g}</h4>
+          {DOCS.filter((d) => d.group === g).map((d) => <a key={d.id} href={href(d.id)} aria-current={route === d.id ? "page" : undefined}>{d.name}<small>{d.role.split(/[ /(]/)[0].toLowerCase()}</small></a>)}
+        </div>
+      ))}
+      <h4>Examples</h4>
+      {CASES.map((c) => <a key={c.id} href={href(c.id)} aria-current={route === c.id ? "page" : undefined}>{c.name}<small>{c.uses.length} controls</small></a>)}
     </>
   );
 }
@@ -409,6 +421,35 @@ function toMarkdown(d: Doc) {
   ].join("\n");
 }
 
+/* ───── a case example ───── */
+function CasePage({ c, finish, setFinish }: { c: Case; finish: Finish; setFinish: (f: Finish) => void }) {
+  const idx = PAGES.findIndex((p) => p.id === c.id);
+  const [run, replay] = useReplay();
+  const md = () => [`# ${c.name}`, "", c.summary, "", ...c.body.flatMap((b) => [b, ""]), "```tsx", c.source, "```"].join("\n");
+  const View = c.View;
+  return (
+    <article className="article wide-article">
+      <div className="page-title">
+        <h1>{c.name}</h1>
+        <div className="page-actions"><PageActions md={md} name={c.name} /></div>
+      </div>
+      <p className="desc">{c.summary}</p>
+      <div className="uses">{c.uses.map((u) => { const d = DOCS.find((x) => x.id === u); return d ? <a key={u} href={href(u)}><span className="chip"><b>{d.name}</b>{d.role}</span></a> : null; })}</div>
+      <div className="case-bar">
+        <Seg label="Finish" value={finish} onChange={setFinish} options={[{ v: "line", label: "Line" }, { v: "solid", label: "Solid" }]} />
+        <button className="icon-btn" aria-label="Reset" title="Reset" onClick={replay}><Icon.replay /></button>
+      </div>
+      <div className="case-stage" key={run}><View finish={finish} /></div>
+      <h2 id="how">How it works</h2>
+      {c.body.map((b, i) => <p key={i} style={{ marginTop: i ? 12 : 8 }}>{b}</p>)}
+      <h2 id="code">Code</h2>
+      <p>The whole example, as it runs on this page. Every control comes from <code>knurl-ui/react</code>.</p>
+      <Code code={c.source} title={c.file} collapse />
+      <Pager index={idx} />
+    </article>
+  );
+}
+
 /* ───── guides ───── */
 function GuideHead({ title, desc, md }: { title: string; desc: string; md: () => string }) {
   return (
@@ -520,7 +561,8 @@ function Palette({ close, go, toggleTheme }: { close: () => void; go: (r: string
   const items = useMemo(() => {
     const all: { group: string; label: string; hint: string; run: () => void }[] = [
       ...GUIDES.map((g) => ({ group: "Getting started", label: g.name, hint: "", run: () => go(g.id) })),
-      ...DOCS.map((d) => ({ group: "Controls", label: d.name, hint: d.role, run: () => go(d.id) })),
+      ...ORDERED.map((d) => ({ group: "Controls", label: d.name, hint: d.role, run: () => go(d.id) })),
+      ...CASES.map((c) => ({ group: "Examples", label: c.name, hint: `${c.uses.length} controls`, run: () => go(c.id) })),
       { group: "Actions", label: "Toggle theme", hint: "D", run: toggleTheme },
       { group: "Actions", label: "Copy install command", hint: "npm i knurl-ui", run: () => copyText("npm i knurl-ui") },
       { group: "Actions", label: "Open GitHub", hint: "", run: () => window.open(REPO, "_blank", "noopener") },

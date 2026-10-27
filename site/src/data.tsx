@@ -10,7 +10,7 @@ export const NPM = "https://www.npmjs.com/package/knurl-ui";
 export type Prop = { name: string; type: string; def?: string; desc: string };
 export type Example = { id: string; title: string; text: string; code: string; render: (f: Finish) => ReactNode };
 export type Doc = {
-  id: string; name: string; role: string; summary: string;
+  id: string; name: string; role: string; summary: string; group: "Inputs" | "Choices" | "Readouts";
   object: string; // what the object is, in one sentence
   keys: [string, string][];
   examples: Example[];
