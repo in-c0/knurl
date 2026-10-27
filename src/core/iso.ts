@@ -246,3 +246,94 @@ export function rulerX(P: Projector, x0: number, x1: number, n: number, every: n
   }
   return { minor: minor.join(""), major: major.join("") };
 }
+
+/* ───── convex solids in any orientation ───── */
+
+export const add3 = (a: Vec3, b: Vec3): Vec3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+export const sub3 = (a: Vec3, b: Vec3): Vec3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+export const scale3 = (a: Vec3, k: number): Vec3 => [a[0] * k, a[1] * k, a[2] * k];
+export const cross3 = (a: Vec3, b: Vec3): Vec3 => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+export const dot3 = (a: Vec3, b: Vec3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+
+/** A 3×3 rotation as three column vectors; compose with `turn`. */
+export type Rot = [Vec3, Vec3, Vec3];
+export const IDENT: Rot = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+/** Rotation about the world x, y or z axis by `a` radians. */
+export function rot(axis: "x" | "y" | "z", a: number): Rot {
+  const c = Math.cos(a), s = Math.sin(a);
+  if (axis === "x") return [[1, 0, 0], [0, c, s], [0, -s, c]];
+  if (axis === "y") return [[c, 0, -s], [0, 1, 0], [s, 0, c]];
+  return [[c, s, 0], [-s, c, 0], [0, 0, 1]];
+}
+/** Applies a rotation to a vector. */
+export const turn = (R: Rot, v: Vec3): Vec3 => add3(add3(scale3(R[0], v[0]), scale3(R[1], v[1])), scale3(R[2], v[2]));
+/** `A` after `B`: the rotation that applies B, then A. */
+export const compose = (A: Rot, B: Rot): Rot => [turn(A, B[0]), turn(A, B[1]), turn(A, B[2])];
+
+/** The direction toward the viewer, in world space. */
+export const toViewer = (C: Camera): Vec3 => {
+  const a = rad(C.az), e = rad(C.el);
+  return [Math.sin(a) * Math.cos(e), Math.cos(a) * Math.cos(e), Math.sin(e)];
+};
+
+/**
+ * Any convex polyhedron, from its vertices and its faces (each a ring of
+ * vertex indices, counter-clockwise seen from outside). Faces turned up
+ * (normal z > 0.6) are lids; the rest are shaded in four tones by facing.
+ * The crease is every edge shared by two visible faces, so a tilted box
+ * reads in the line finish exactly as an upright slab does.
+ */
+export function poly3(C: Camera, P: Projector, verts: readonly Vec3[], faces: readonly number[][]): SolidPaths {
+  const V = toViewer(C), light = lighting(C);
+  const scr = verts.map((v) => P(v[0], v[1], v[2]));
+  const buckets: string[][] = Array.from({ length: SHADES }, () => []);
+  const tops: string[] = [];
+  const vis: boolean[] = [];
+  const edgeCount = new Map<string, number>();
+  faces.forEach((f, i) => {
+    const n = cross3(sub3(verts[f[1]], verts[f[0]]), sub3(verts[f[2]], verts[f[0]]));
+    const L = Math.hypot(n[0], n[1], n[2]) || 1;
+    const nn: Vec3 = [n[0] / L, n[1] / L, n[2] / L];
+    vis[i] = dot3(nn, V) > 1e-6;
+    if (!vis[i]) return;
+    const d = poly(f.map((k) => scr[k]));
+    if (nn[2] > 0.6) tops.push(d);
+    else {
+      const g = Math.hypot(nn[0], nn[1]) || 1;
+      buckets[Math.min(SHADES - 1, Math.floor(light(nn[0] / g, nn[1] / g) * SHADES))].push(d);
+    }
+    for (let k = 0; k < f.length; k++) {
+      const a = f[k], b = f[(k + 1) % f.length];
+      const key = a < b ? a + "," + b : b + "," + a;
+      edgeCount.set(key, (edgeCount.get(key) ?? 0) + 1);
+    }
+  });
+  const crease: string[] = [];
+  for (const [key, n] of edgeCount) if (n === 2) { const [a, b] = key.split(",").map(Number); crease.push(seg(scr[a], scr[b])); }
+  return { sil: poly(hull(scr)), shades: buckets.map((b) => b.join("")), top: tops.join(""), crease: crease.join("") };
+}
+
+/**
+ * A box of half-extents (hx, hy, hz), turned by R about its own centre and
+ * placed at `c`. Optionally pivoted: `pivot` is a point in the box's own
+ * frame that stays at `c` instead of the centre (a lever turning on its foot).
+ */
+export function cuboid(c: Vec3, hx: number, hy: number, hz: number, R: Rot = IDENT, pivot: Vec3 = [0, 0, 0]) {
+  const local: Vec3[] = [
+    [-hx, -hy, -hz], [hx, -hy, -hz], [hx, hy, -hz], [-hx, hy, -hz],
+    [-hx, -hy, hz], [hx, -hy, hz], [hx, hy, hz], [-hx, hy, hz],
+  ];
+  const verts = local.map((v) => add3(c, turn(R, sub3(v, pivot))));
+  const faces = [[0, 3, 2, 1], [4, 5, 6, 7], [0, 1, 5, 4], [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7]];
+  return { verts, faces };
+}
+
+/** A prism from a convex ring in the box's own x–y plane, extruded ±hz, then turned and placed like `cuboid`. */
+export function prism3(c: Vec3, ring: readonly Vec2[], hz: number, R: Rot = IDENT, pivot: Vec3 = [0, 0, 0]) {
+  const n = ring.length;
+  const local: Vec3[] = [...ring.map((p): Vec3 => [p[0], p[1], -hz]), ...ring.map((p): Vec3 => [p[0], p[1], hz])];
+  const verts = local.map((v) => add3(c, turn(R, sub3(v, pivot))));
+  const faces: number[][] = [Array.from({ length: n }, (_, k) => n - 1 - k), Array.from({ length: n }, (_, k) => n + k)];
+  for (let k = 0; k < n; k++) faces.push([k, (k + 1) % n, n + (k + 1) % n, n + k]);
+  return { verts, faces };
+}

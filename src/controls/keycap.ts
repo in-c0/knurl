@@ -30,6 +30,7 @@ export const keycap = define<KeycapOptions>({
   vw: VW,
   vh: VH,
   width: 120,
+  keys: ["legend", "units", "onPress"],
   mount(ctx, o) {
     const { host, svg, doc } = ctx;
     const bag = disposer();

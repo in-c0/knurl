@@ -1,7 +1,7 @@
 import { camera, cyl, fit, flat, proj, rad, rrect, rulerX, seg, slab, unproj, type Vec3 } from "../core/iso";
 import { spring, stepS } from "../core/motion";
 import { define } from "../core/control";
-import { range, type RangeOptions } from "../core/range";
+import { range, RANGE_KEYS, type RangeOptions } from "../core/range";
 import { disposer, line, mk, register, shadow, solid, toView } from "../core/stage";
 
 /**
@@ -25,6 +25,8 @@ export const fader = define<FaderOptions>({
   vw: VW,
   vh: VH,
   width: 280,
+  keys: RANGE_KEYS,
+  controlKey: "value",
   mount(ctx, o) {
     const { host, svg } = ctx;
     const bag = disposer();

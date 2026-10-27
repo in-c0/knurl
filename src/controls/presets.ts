@@ -30,6 +30,8 @@ export const presets = define<PresetsOptions>({
   vw: VW,
   vh: VH,
   width: 260,
+  keys: ["options", "value", "defaultValue", "onValueChange", "controlled"],
+  controlKey: "value",
   mount(ctx, o) {
     const { host, svg, doc } = ctx;
     const bag = disposer();

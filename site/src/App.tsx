@@ -358,7 +358,7 @@ function ControlPage({ doc, index, finish, setFinish }: { doc: Doc; index: numbe
           <div className="steps" style={{ marginTop: 20 }}>
             <div><h4>Copy the core</h4><p>Six small files every control shares: projection, solids, the frame loop, the stylesheet, the value logic and the React wrapper. Take them from <a href={`${SITE}/r/knurl-core.json`} target="_blank" rel="noreferrer">knurl-core.json</a> or <a href={`${REPO}/tree/main/src/core`} target="_blank" rel="noreferrer">src/core</a> into <code>components/knurl/core</code>.</p></div>
             <div><h4>Copy the control</h4><Code code={source(doc.id)} title={`components/knurl/controls/${doc.id}.ts`} collapse /></div>
-            <div><h4>Add its React component</h4><Code title={`components/knurl/${doc.id}.tsx`} code={`"use client";\nimport { make } from "./react/make";\nimport { ${doc.id}, type ${doc.name}Options } from "./controls/${doc.id}";\n\nexport const ${doc.name} = make<${doc.name}Options>("${doc.name}", ${doc.id}, "${ratioOf(doc.id)}"${controlKeyOf(doc.id)});`} /></div>
+            <div><h4>Add its React component</h4><Code title={`components/knurl/${doc.id}.tsx`} code={`"use client";\nimport { make } from "./react/make";\nimport { ${doc.id}, type ${doc.name}Options } from "./controls/${doc.id}";\n\nexport const ${doc.name} = make<${doc.name}Options>("${doc.name}", ${doc.id});`} /></div>
           </div>
         ) },
       ]} />
@@ -396,12 +396,6 @@ function ControlPage({ doc, index, finish, setFinish }: { doc: Doc; index: numbe
   );
 }
 
-const RATIO: Record<string, [string, string]> = {
-  toggle: ["200 / 140", "checked"], fader: ["320 / 120", "value"], knob: ["200 / 170", "value"], keycap: ["200 / 150", ""],
-  presets: ["300 / 150", "value"], counter: ["280 / 150", "value"], gauge: ["200 / 170", ""], gears: ["200 / 150", ""],
-};
-const ratioOf = (id: string) => RATIO[id][0];
-const controlKeyOf = (id: string) => (RATIO[id][1] ? `, "${RATIO[id][1]}"` : "");
 
 function toMarkdown(d: Doc) {
   return [

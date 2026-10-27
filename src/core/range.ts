@@ -17,6 +17,8 @@ export type RangeOptions = BaseOptions & {
   controlled?: boolean;
 };
 
+export const RANGE_KEYS = ["value", "defaultValue", "min", "max", "step", "onValueChange", "onValueCommit", "format", "controlled"] as const;
+
 export type Range = {
   readonly value: number;
   readonly min: number;

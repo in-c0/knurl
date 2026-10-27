@@ -31,6 +31,8 @@ export const toggle = define<ToggleOptions>({
   vw: VW,
   vh: VH,
   width: 132,
+  keys: ["checked", "defaultChecked", "onCheckedChange", "controlled"],
+  controlKey: "checked",
   mount(ctx, o) {
     const { host, svg } = ctx;
     const bag = disposer();

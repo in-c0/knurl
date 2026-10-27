@@ -45,6 +45,10 @@ export type Spec<O extends BaseOptions> = {
   vh: number;
   /** Default CSS width in px when the host has none. */
   width: number;
+  /** The control's own option names (beyond BaseOptions), so a wrapper can tell options from attributes. */
+  keys: readonly string[];
+  /** The option that makes it controlled in React: "value" or "checked". */
+  controlKey?: "value" | "checked";
   mount(ctx: EngineContext, options: O): Engine<O>;
 };
 
@@ -61,8 +65,15 @@ export function emit<A extends unknown[]>(fn: ((...a: A) => void) | undefined, .
   if (typeof fn === "function") try { fn(...args); } catch (err) { report(err); }
 }
 
-export function define<O extends BaseOptions>(spec: Spec<O>) {
-  return function create(el: HTMLElement, options?: O): Control<O> {
+export const BASE_KEYS = ["theme", "finish", "label", "disabled", "name"] as const;
+
+/** A mount function, carrying what a wrapper needs to know about it. */
+export type Mount<O> = ((el: HTMLElement, options?: O) => Control<O>) & {
+  readonly id: string; readonly keys: readonly string[]; readonly ratio: string; readonly controlKey?: "value" | "checked";
+};
+
+export function define<O extends BaseOptions>(spec: Spec<O>): Mount<O> {
+  const create = function create(el: HTMLElement, options?: O): Control<O> {
     if (typeof document === "undefined") throw new Error(`knurl: ${spec.id}() needs a DOM; call it in the browser once the element exists.`);
     if (!el || el.nodeType !== 1) throw new TypeError(`knurl: ${spec.id}() takes an element as its first argument.`);
     mounted.get(el)?.();
@@ -129,6 +140,7 @@ export function define<O extends BaseOptions>(spec: Spec<O>) {
       destroy,
     };
   };
+  return Object.assign(create, { id: spec.id, keys: [...BASE_KEYS, ...spec.keys], ratio: `${spec.vw} / ${spec.vh}`, controlKey: spec.controlKey });
 }
 
 /** A visually hidden native input inside the host: keyboard, screen readers and forms come from the platform. */

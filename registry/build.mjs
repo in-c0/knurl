@@ -26,7 +26,7 @@ import { make } from "./react/make";
 import { ${c.id}, type ${c.name}Options } from "./controls/${c.id}";
 
 /** ${c.summary} */
-export const ${c.name} = make<${c.name}Options>("${c.name}", ${c.id}, "${c.ratio}"${c.controlKey ? `, "${c.controlKey}"` : ""});
+export const ${c.name} = make<${c.name}Options>("${c.name}", ${c.id});
 `;
 
 const items = [];

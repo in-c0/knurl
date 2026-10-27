@@ -36,6 +36,7 @@ export const gauge = define<GaugeOptions>({
   vw: VW,
   vh: VH,
   width: 160,
+  keys: ["value", "min", "max", "role", "peak", "format"],
   mount(ctx, o) {
     const { host, svg } = ctx;
     const bag = disposer();

@@ -1,7 +1,7 @@
 import { camera, cyl, fit, flat, planeMatrix, proj, rrect, seg, slab, type Vec2, type Vec3 } from "../core/iso";
 import { spring, stepS, type Spring } from "../core/motion";
 import { define } from "../core/control";
-import { range, type RangeOptions } from "../core/range";
+import { range, RANGE_KEYS, type RangeOptions } from "../core/range";
 import { disposer, line, mk, register, shadow, solid, type Solid } from "../core/stage";
 
 /**
@@ -26,6 +26,8 @@ export const counter = define<CounterOptions>({
   vw: VW,
   vh: VH,
   width: 220,
+  keys: RANGE_KEYS,
+  controlKey: "value",
   mount(ctx, o) {
     const { host, svg } = ctx;
     const bag = disposer();

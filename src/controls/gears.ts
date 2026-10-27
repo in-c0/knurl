@@ -64,6 +64,7 @@ export const gears = define<GearsOptions>({
   vw: VW,
   vh: VH,
   width: 140,
+  keys: ["spinning", "speed"],
   mount(ctx, o) {
     const { host, svg } = ctx;
     const bag = disposer();
