@@ -367,6 +367,9 @@ export const tank = define<TankOptions>({
     });
     bag.add(B.unregister);
 
+    // the host's own values for what we set, so destroy can put them back
+    const ARIA = ["role", "aria-valuemin", "aria-valuemax", "aria-valuenow", "aria-label", "aria-valuetext"];
+    const before = ARIA.map((k) => host.getAttribute(k));
     const sync = () => {
       const [a, b] = lim(), v = num(opts.value, a);
       const meter = opts.role !== "progressbar";
@@ -380,7 +383,7 @@ export const tank = define<TankOptions>({
     sync();
 
     bag.add(() => {
-      for (const k of ["role", "aria-valuemin", "aria-valuemax", "aria-valuenow", "aria-label", "aria-valuetext"]) host.removeAttribute(k);
+      ARIA.forEach((k, i) => { const was = before[i]; if (was === null) host.removeAttribute(k); else host.setAttribute(k, was); });
       svg.replaceChildren();
     });
     return {

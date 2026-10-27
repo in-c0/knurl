@@ -1,4 +1,4 @@
-import { camera, cuboid, cyl, fit, flat, lighting, planeMatrix, poly, poly3, prism3, proj, rad, rot, rrect, seg, slab, toViewer, SHADES, type Camera, type Projector, type Rot, type Vec2, type Vec3 } from "../core/iso";
+import { camera, cuboid, cyl, fit, flat, hull, lighting, planeMatrix, poly, poly3, prism3, proj, rad, rot, rrect, seg, slab, toViewer, SHADES, type Camera, type Projector, type Rot, type Vec2, type Vec3 } from "../core/iso";
 import { reducedMotion, spring, stepS, type Spring } from "../core/motion";
 import { define, emit, type BaseOptions } from "../core/control";
 import { disposer, line, mk, register, shadow, solid, type Solid } from "../core/stage";
@@ -124,8 +124,8 @@ export const tray = define<TrayOptions>({
 
     const TX = 13, TY = 17, WT = 1.1; // outer half-size and panel thickness
     const Z0 = 1.4, FZ = 2.4; // panels' foot (over the feet) and the floor
-    const HB = FZ + 7.4, HF = FZ + 3.4; // side panels' height at the back and the front
-    const SX = 10.2, SY = 14.4, TH = 0.56; // a sheet's half-size and thickness
+    const HB = FZ + 7.4, HF = FZ + 4.4; // side panels' height at the back and the front
+    const SX = 10.2, SY = 14.4, TH = 0.38; // a sheet's half-size and thickness
     const ZG = FZ + STACK * TH + 9; // the ghost's height over the floor
     const ext: Vec3[] = [[-TX, -TY, 0], [TX, TY, 0], [-TX, TY, 0], [TX, -TY, 0], [-TX, -TY, HB + 1], [TX, -TY, HB + 1], [-SX, -SY, ZG + 2], [SX, -SY, ZG + 2]];
     fit(C, ext, VW / 2, VH / 2, VW - 16, VH - 14);
@@ -154,10 +154,11 @@ export const tray = define<TrayOptions>({
     // the floor: two runners keep the paper off the bottom
     const runners = line(g, "lo");
     runners.setAttribute("d", [-5, 5].map((x) => seg(P(x, -TY + WT + 1.6, FZ), P(x, TY - WT - 1.6, FZ))).join(""));
-    const land = mk("path", { class: "k-line lo dash" }, g);
 
     // the stack, built from the bottom up
     const stackG = mk("g", {}, g);
+    // where the next sheet will land, while a drag is over
+    const land = mk("path", { class: "k-line edge dash" }, g);
     let sheets: Sheet[] = [];
     let ords = 0;
 
@@ -165,14 +166,28 @@ export const tray = define<TrayOptions>({
     const RN = 4.6, NZ = HF - 2.2, notch: Vec2[] = [];
     for (let k = 0; k <= 16; k++) { const a = -(k / 16) * Math.PI; notch.push([Math.cos(a) * RN, HF + (Math.sin(a) * (HF - NZ) * RN) / RN]); }
     const front = panel(g, C, P, [[-TX + WT, Z0], [TX - WT, Z0], [TX - WT, HF], ...notch, [-TX + WT, HF]], TY - WT, TY);
+    // a countersunk screw head on a face, with its slot
+    const screw = (c: Vec3, u: Vec3, v: Vec3) => {
+      const sg = mk("g", { transform: planeMatrix(P, c, u, v) }, g);
+      mk("circle", { class: "k-face", r: 0.62 }, sg);
+      mk("path", { class: "k-line edge", d: "M-0.4 0.18L0.4 -0.18" }, sg);
+    };
+    // the front panel's joint screws
+    for (const x of [-TX + WT + 0.9, TX - WT - 0.9]) screw([x, TY, (Z0 + HF) / 2], [1, 0, 0], [0, 0, -1]);
+    const midG = mk("g", {}, g);
     const rightPanel = solid(g);
     rightPanel.put(side(TX - WT / 2));
     peg(TX - WT / 2);
-    // a stick-on label on the right panel's lower front
-    line(g, "lo").setAttribute("d", poly(([[TY - 9.5, Z0 + 1.2], [TY - 2.6, Z0 + 1.2], [TY - 2.6, Z0 + 3.4], [TY - 9.5, Z0 + 3.4]] as Vec2[]).map(([y, z]) => P(TX, y, z))));
+    // the right panel's outside: a joint screw at each end and the maker's moulded mark
+    {
+      const s = (y: number, z: number) => P(TX, y, z);
+      for (const [y, z] of [[TY - 1.6, (Z0 + HF) / 2], [-TY + 1.6, (Z0 + HB) / 2 + 1]]) screw([TX, y, z], [0, -1, 0], [0, 0, -1]);
+      line(g, "lo").setAttribute("d", poly(([[TY - 11, Z0 + 1.2], [TY - 4.2, Z0 + 1.2], [TY - 4.2, Z0 + 3], [TY - 11, Z0 + 3]] as Vec2[]).map(([y, z]) => s(y, z))));
+    }
 
     const airG = mk("g", {}, g);
     const ghost = mk("g", { class: "k-ghost" }, g);
+    const ghostBody = mk("path", { class: "k-fill" }, ghost);
     const ghostEdge = mk("path", { class: "k-line hi dash" }, ghost);
     const ghostFold = mk("path", { class: "k-line edge" }, ghost);
     ghost.style.opacity = "0";
@@ -184,14 +199,17 @@ export const tray = define<TrayOptions>({
       const sg = mk("g", {}, stackG);
       const body = solid(sg);
       const print = mk("g", {}, sg);
-      const lines: string[] = ["M3 3.4H8.4", "M3 7.2H17.6"];
+      const lines: string[] = ["M3 3.4H8.4", "M3 5.2H6.6", "M3 7.8H17.4"];
       for (let k = 0; k < 8; k++) {
         const w = 14.6 - rnd(ord * 7 + k, 4) * 6 * (k % 4 === 3 ? 1.6 : 0.5);
         lines.push(`M3 ${(10 + k * 2.1).toFixed(2)}H${(3 + w).toFixed(2)}`);
       }
       mk("path", { class: "k-line lo", d: lines.join("") }, print);
-      const text = mk("text", { class: "k-text hi", x: 17.6, y: 4.4, "text-anchor": "end" }, print) as SVGTextElement;
-      text.style.fontSize = "3.4px";
+      // the file type, stamped in a box in the top corner
+      const w = 1.2 + legend.length * 1.5;
+      if (legend) mk("path", { class: "k-line edge", d: `M${17.6 - w} 2.1H17.6V5.5H${17.6 - w}Z` }, print);
+      const text = mk("text", { class: "k-text hi", x: 17.6 - w / 2, y: 4.62, "text-anchor": "middle" }, print) as SVGTextElement;
+      text.style.fontSize = "2.4px";
       text.textContent = legend;
       return { ord, legend, z: spring(z, { k: 150, c: 22, eps: 0.004 }), t0, g: sg, body, print, text, key: "" };
     }
@@ -238,7 +256,7 @@ export const tray = define<TrayOptions>({
 
     const restOf = (i: number) => FZ + i * TH;
     /** Brings the sheets in line with the count: new ones fall in from above, staggered; gone ones lift off the top. */
-    function settle(now: number) {
+    function settle(now: number, fall = true) {
       const n = countOf();
       let last = ords;
       if (n > ords) {
@@ -248,7 +266,7 @@ export const tray = define<TrayOptions>({
           if (ord <= n - STACK) continue; // under the visible ten: never seen
           const legend = pending.length ? pending.shift()! : "";
           const shown = Math.min(sheets.length, STACK);
-          sheets.push(makeSheet(ord, legend, restOf(shown) + 16 + k * 1.5, now + Math.min(k, 6) * 110));
+          sheets.push(fall ? makeSheet(ord, legend, restOf(shown) + 16 + k * 1.5, now + Math.min(k, 6) * 110) : makeSheet(ord, legend, 0, -1e9));
         }
       } else if (n < ords) {
         sheets = sheets.filter((s) => { if (s.ord > n) { s.g.remove(); return false; } return true; });
@@ -262,10 +280,11 @@ export const tray = define<TrayOptions>({
       pending = [];
       // keep the top ten
       while (sheets.length > STACK) sheets.shift()!.g.remove();
-      sheets.forEach((s, i) => { if (s.t0 < -1e8) { s.z.x = restOf(i); } s.z.t = restOf(i); });
+      // sheets that were already there sit at rest now, drawn without waiting for a frame (the tray may be offscreen)
+      sheets.forEach((s, i) => { s.z.t = restOf(i); if (s.t0 < -1e8 && !s.key) { s.z.x = restOf(i); drawSheet(s, restOf(i)); } });
     }
 
-    const wx = P(1, 0, 0), w0 = P(0, 0, 0), WX: Vec2 = [wx[0] - w0[0], wx[1] - w0[1]];
+    const wx = P(1, 0, 0), w0 = P(0, 0, 0), foot = P(0, TY, 0), WX: Vec2 = [wx[0] - w0[0], wx[1] - w0[1]];
     let lastWob = NaN, lit = false;
     const B = register(host, (dt, now) => {
       let moving = false;
@@ -274,8 +293,8 @@ export const tray = define<TrayOptions>({
         s.g.style.display = "";
         const rest = restOf(i);
         if (stepS(s.z, dt)) moving = true;
-        // in the air it is in front of the front panel and the right side; landed, it is behind them
-        const parent = s.z.x > HF + 0.3 ? airG : stackG;
+        // over the front panel's top it is in front of that panel; over the back's, in front of the sides too
+        const parent = s.z.x > HB + 0.3 ? airG : s.z.x > HF + 0.3 ? midG : stackG;
         if (s.g.parentNode !== parent) parent.appendChild(s.g);
         drawSheet(s, rest);
       });
@@ -286,11 +305,12 @@ export const tray = define<TrayOptions>({
       if (hov.x > 0.002) {
         const bob = over && !reducedMotion() ? Math.sin(now / 420) * 0.5 : 0;
         if (over && !reducedMotion()) moving = true;
-        const z = top + 5 + 4 * hov.x + bob, a = rad(-2);
+        const z = top + 4 + 3.5 * hov.x + bob, a = rad(-2);
         const b = cuboid([0, 0, z], SX, SY, TH / 2, rot("z", a));
         const pts = b.verts.slice(4).map((v) => P(v[0], v[1], v[2]));
         ghostEdge.setAttribute("d", poly(pts));
         const lid = b.verts.slice(0, 4).map((v) => P(v[0], v[1], v[2]));
+        ghostBody.setAttribute("d", poly(hull(pts.concat(lid))));
         ghostFold.setAttribute("d", seg(lid[1], pts[1]) + seg(lid[2], pts[2]) + seg(lid[3], pts[3]));
         land.setAttribute("d", flat(P, rrect(-SX, -SY, SX, SY, 0.2), top));
         ghost.style.opacity = hov.x.toFixed(3);
@@ -301,12 +321,13 @@ export const tray = define<TrayOptions>({
       if (stepS(wob, dt)) moving = true;
       if (wob.x !== lastWob) {
         lastWob = wob.x;
-        root.setAttribute("transform", wob.x === 0 ? "" : `translate(${(WX[0] * wob.x).toFixed(2)} ${(WX[1] * wob.x).toFixed(2)})`);
+        // slides along its width and rocks a little on its feet
+        root.setAttribute("transform", wob.x === 0 ? "" : `translate(${(WX[0] * wob.x).toFixed(2)} ${(WX[1] * wob.x).toFixed(2)}) rotate(${(wob.x * 0.9).toFixed(2)} ${foot[0].toFixed(2)} ${foot[1].toFixed(2)})`);
       }
       return moving;
     });
     bag.add(B.unregister);
-    settle(performance.now());
+    settle(performance.now(), false);
     B.wake();
 
     const sync = () => {
