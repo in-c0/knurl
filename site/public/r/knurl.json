@@ -1,0 +1,18 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "knurl",
+  "type": "registry:component",
+  "title": "Knurl (every control)",
+  "description": "All eight Knurl controls and their core.",
+  "registryDependencies": [
+    "https://in-c0.github.io/knurl/r/toggle.json",
+    "https://in-c0.github.io/knurl/r/fader.json",
+    "https://in-c0.github.io/knurl/r/knob.json",
+    "https://in-c0.github.io/knurl/r/keycap.json",
+    "https://in-c0.github.io/knurl/r/presets.json",
+    "https://in-c0.github.io/knurl/r/counter.json",
+    "https://in-c0.github.io/knurl/r/gauge.json",
+    "https://in-c0.github.io/knurl/r/gears.json"
+  ],
+  "files": []
+}
